@@ -1,5 +1,5 @@
 # AttackOlineRanker
-To run the script:
+To run the script: "\n"
 python3 script.py [-h] [-L LENGTH] [-d DIMENSION] -T TIME [-r REPEAT] -cm
                  CLICK_MODELS [CLICK_MODELS ...] [-s SYNTHETIC] [-t TABULAR]
                  [-f FILENAME] -a ALGORITHMS [ALGORITHMS ...]

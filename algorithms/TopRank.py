@@ -35,9 +35,6 @@ class TopRank:
         clicks = np.zeros(self.L)
         clicks[np.asarray(At)] = x
 
-        # if t %1000 == 0:
-        #     print(x)
-
         # update S and N
         for c in self.partitions:
             partition = self.partitions[c]
@@ -110,14 +107,64 @@ class TopRank:
         return self.rewards, num_t_click
 
     def attack_run(self):
-        target_arm = 100
+        print("general attack:")
+        target_arm = 10
         cost = []
         num_t_click = []
         de = 1
+
+        # self.env.means = np.insert(self.env.means, self.L, 0)
+        self.env.means[np.argsort(self.env.means)[0]] = 0
+
+        AuxL = np.argsort(self.env.means)[1:self.K]
+        AuxL = np.array(AuxL)
+        AuxL = np.insert(AuxL, 0, target_arm)
+        eta_item = np.argsort(self.env.means)[0]
+        # print(eta_item)
+        # print(AuxL)
         for t in range(self.T):
+            attack = False
+            At = self.select()
+            
+            # if t%1000 == 0:
+            #     print(At)
+
+            if list(set(At).difference(set(AuxL))) != []:             
+                for k in range(self.K):
+                    if At[k] not in AuxL:
+                        # set the attractiveness to
+                        At[k] = eta_item
+                        attack = True
+                    
+            if attack == True:
+                cost.append(1)
+            else:
+                cost.append(0)
+
+            x, r = self.env.feedback(At)
+            if target_arm in At:
+                if x[At.index(target_arm)] == 1:
+                    num_t_click.append(1)
+                else:
+                    num_t_click.append(0)
+            else:
+                num_t_click.append(0)
+            self.update(t, At, x, r)
+        return cost, num_t_click
+    
+    def attack_quit_run(self):
+        print("attack then quit")
+        target_arm = 10
+        Threshold_1 = (4*np.log((self.L ** 2)*self.T))/((self.K/self.L)+(1-np.sqrt(1+8*(self.K/self.L)/4)))
+        # print(Threshold_1)
+        Threshold = 4000
+        num_t_click = []
+
+        cost = []
+        for t in range(self.T):
+            attack = False
             At = self.select()
             x, r = self.env.feedback(At)
-
             if target_arm in At:
                 if x[At.index(target_arm)] == 1:
                     # print(1)
@@ -128,26 +175,20 @@ class TopRank:
                 # print(3)
                 num_t_click.append(0)
 
-            if x.sum() != self.K:              
-                # fixed delta equal to 0.1
-                if target_arm not in At: # target arm not got selected in K
-                    # a += 1
-                    cost.append(0.1)
-                    self.rewards[t] -= de
-                    x = np.array([0]*self.K) # set all other arm not pulled
-                
-                elif target_arm in At and (At.index(target_arm) != 0): # target arm in K but not selected
-                    # b += 1
-                    cost.append(0.1)
-                    self.rewards[t] -= de
-                    x[At.index(target_arm)] = 1
-                
-                else:
-                    # c += 1
-                    # print(2)
-                    cost.append(0)
+            if t <= Threshold:
+                for k in range(self.K):
+                    if At[k] == target_arm:
+                        if x[k] != 1:
+                            x[k] = 1
+                            attack = True
+                    elif At[k] != target_arm :
+                        if x[k] != 0:
+                            x[k] = 0
+                            attack = True
+            if attack == True:
+                cost.append(1)
+            else:
+                cost.append(0)
+
             self.update(t, At, x, r)
-        # print(a)
-        # print(b)
-        # print(c)
-        return self.rewards, cost, num_t_click
+        return cost, num_t_click

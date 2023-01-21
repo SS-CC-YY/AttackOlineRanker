@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 from sklearn.preprocessing import normalize
 
 from ExtractFeatures import ExtractFeatures
@@ -13,9 +14,20 @@ class Environment(object):
                 self.means = np.random.rand(L)
                 # self.means = np.arange(1,0,-1/L)
             else:
-                self.items = self.genitems(L, d)
-                theta = self.genitems(1, d)[0]
+                if L == 1000:
+                    with open("items.pkl", 'rb') as ifile:
+                        self.items = pickle.loads(ifile.read())
+                    with open("theta.pkl", 'rb') as tfile:
+                        theta = pickle.loads(tfile.read())
+                if L == 100:
+                    with open("items_100.pkl", 'rb') as ifile:
+                        self.items = pickle.loads(ifile.read())
+                    with open("theta_100.pkl", 'rb') as tfile:
+                        theta = pickle.loads(tfile.read())
+                # self.items = self.genitems(L, d)
+                # theta = self.genitems(1, d)[0]
                 self.means = np.dot(self.items, theta)
+
         else:
             self.items, theta = ExtractFeatures(num_users=1000, num_users_in_train=100, num_items=L, d=d, filename=filename)
             self.means = np.dot(self.items, theta)

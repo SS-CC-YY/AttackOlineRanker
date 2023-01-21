@@ -6,11 +6,10 @@ import random
 import time
 import pandas as pd
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from utlis.argparsers.simulationargparser import SimulationArgumentParser
-from algorithms.RecurRank import RecurRank
 from algorithms.TopRank import TopRank
 from algorithms.CascadeLinUCBAttack import CascadeLinUCB
-from algorithms.CascadeLinTSAttack import CascadeLinTS
 from Environment import CasEnv, PbmEnv#, RealDataEnv
 
 description = 'Run script for testing attack algorithms.'
@@ -19,8 +18,9 @@ parser = SimulationArgumentParser(description=description)
 sim_args, other_args = parser.parse_all_args()
 
 UCB_cost = pd.DataFrame()
-TS_cost = pd.DataFrame()
 Top_cost = pd.DataFrame()
+UCB_pull = pd.DataFrame()
+Top_pull = pd.DataFrame()
 # print(data_cost)
 
 # print(parser.parse_all_args())
@@ -63,14 +63,14 @@ for envname in cm:
             if envname == 'cas':
                 env = CasEnv(L=L, d=d, synthetic=synthetic, tabular=tabular, filename=filename)
             elif envname == 'pbm':
-                beta = [1/(k+1) for k in range(10)]
+                beta = [1/(k+1) for k in range(L)]
                 # beta = np.ones(10) # used in MovieLens part
                 env = PbmEnv(L=L, d=d, beta=beta, synthetic=synthetic, tabular=tabular, filename=filename)
 
-            for K in [10]:
+            for K in [5]:
         
                 if tabular and envname == 'pbm':
-                    beta = [1/(k+1) for k in range(K)]
+                    beta = [1/(k+1) for k in range(L)]
                     env = PbmEnv(L=L, d=d, beta=beta, synthetic=synthetic, tabular=tabular, filename=filename)
                 
                 # UCB algorithms
@@ -78,32 +78,27 @@ for envname in cm:
                     # crank = CascadeLinUCB(K, env, T)
                     # cregs, target_arm_pull = crank.run()
                     crank = CascadeLinUCB(K, env, T)
-                    cregs_attack, ucb_cost, target_arm_pull_attack = crank.attack_run()
+                    cregs_attack, ucb_cost, target_arm_pull_UCB = crank.attack_run()
                     UCB_cost[i] = ucb_cost
-                
-                # TS algorithm
-                if alg == 'TS':
-                    ctsrank = CascadeLinTS(K, env, T)
-                    # cregs, target_arm_pull = ctsrank.run()
-                    cregs_attack, ts_cost, target_arm_pull_attack = ctsrank.attack_run()
-                    TS_cost[i] = ts_cost
+                    UCB_pull[i] = target_arm_pull_UCB
 
                 # Top algorithm
                 if alg == 'Top':
                     # trank = TopRank(K, env, T)
                     # tregs, target_arm_pull = trank.run()
                     trank = TopRank(K, env, T)
-                    tregs_attack, top_cost, target_arm_pull_attack = trank.attack_run()
+                    top_cost, target_arm_pull_TOP = trank.attack_run()
+                    # top_cost, target_arm_pull_TOP = trank.attack_quit_run()
                     Top_cost[i] = top_cost
+                    Top_pull[i] = target_arm_pull_TOP
 
     # print(data)
         if alg == 'UCB':
             UCB_cost.to_csv('plot/cost_{env}_{rep}_{time}_UCB.csv'.format(env = envname, rep = repeat, time = T))
+            UCB_pull.to_csv('plot/pull_{env}_{rep}_{time}_UCB.csv'.format(env = envname, rep = repeat, time = T))
         if alg == 'Top':
             Top_cost.to_csv('plot/cost_{env}_{rep}_{time}_Top.csv'.format(env = envname, rep = repeat, time = T))
-        if alg == 'TS':
-            TS_cost.to_csv('plot/cost_{env}_{rep}_{time}_TS.csv'.format(env = envname, rep = repeat, time = T))
-        
+            Top_pull.to_csv('plot/pull_{env}_{rep}_{time}_Top.csv'.format(env = envname, rep = repeat, time = T))
 
 runtime = time.time() - starttime
 print(runtime)

@@ -2,11 +2,11 @@ from calendar import c
 from ctypes import cast
 import numpy as np
 import random
-from algorithms.RecurRank import RecurRank
+# import torch
 from algorithms.TopRank import TopRank
 from algorithms.CascadeLinUCBAttack import CascadeLinUCB
-from algorithms.CascadeLinTSAttack import CascadeLinTS
 from Environment import CasEnv, PbmEnv#, RealDataEnv
+from test_batch import BatchRank
 import time
 from matplotlib import pyplot  as plt
 
@@ -14,6 +14,7 @@ def main(L,d,T,envname,repeat,synthetic ,tabular,filename):
 
     for i in range(repeat):
         seed = int(time.time() * 100) % 399
+
         print("Seed = %d" % seed)
         np.random.seed(seed)
         random.seed(seed)
@@ -21,48 +22,42 @@ def main(L,d,T,envname,repeat,synthetic ,tabular,filename):
         if envname == 'cas':
             env = CasEnv(L=L, d=d, synthetic=synthetic, tabular=tabular, filename=filename)
         elif envname == 'pbm':
-            beta = [1/(k+1) for k in range(10)]
+            beta = [1/(k+1) for k in range(L)]
             # beta = np.ones(10) # used in MovieLens part
             env = PbmEnv(L=L, d=d, beta=beta, synthetic=synthetic, tabular=tabular, filename=filename)
 
-        for K in [10]:
+        for K in [5]:
 
             if tabular and envname == 'pbm':
-                beta = [1/(k+1) for k in range(K)]
+                beta = [1/(k+1) for k in range(L)]
                 env = PbmEnv(L=L, d=d, beta=beta, synthetic=synthetic, tabular=tabular, filename=filename)
 
 
-            crank = CascadeLinUCB(K, env, T)
-            starttime = time.time()
-            # cregs, target_arm_pull = crank.run()
-            crank = CascadeLinUCB(K, env, T)
-            cregs_attack, cost, target_arm_pull_attack = crank.attack_run()
-            cruntime = time.time() - starttime
-            print(cruntime)
-
-            # ctsrank = CascadeLinTS(K, env, T)
+            # crank = CascadeLinUCB(K, env, T)
             # starttime = time.time()
-            # # cregs, target_arm_pull = ctsrank.run()
-            # cregs_attack, cost, target_arm_pull_attack = ctsrank.attack_run()
+            # # cregs, target_arm_pull = crank.run()
+            # crank = CascadeLinUCB(K, env, T)
+            # cregs_attack, cost, target_arm_pull_attack = crank.attack_run()
             # cruntime = time.time() - starttime
             # print(cruntime)
     
             # trank = TopRank(K, env, T)
             # starttime = time.time()
             # # tregs, target_arm_pull = trank.run()
-            # tregs_attack, cost, target_arm_pull_attack = trank.attack_run()
-            # tregret = np.ones(T)*env.get_best_reward(K)-tregs_attack
+            # # cost, target_arm_pull_attack = trank.attack_run()
+            # cost, target_arm_pull_attack = trank.attack_quit_run()
+            # # tregret = np.ones(T)*env.get_best_reward(K)-tregs_attack
             # truntime = time.time() - starttime
             # print(truntime)
 
-            # # rrank = RecurRank(K, env, T)
-            # starttime = time.time()
-            # # rregs, target_arm_pull = rrank.run()
-            # rrank = RecurRank(K, env, T)
-            # rregs_attack, cost, target_arm_pull_attack = rrank.attack_run()
-            # rruntime = time.time() - starttime
-            # # rregret = np.ones(T)*env.get_best_reward(K)-rregs
-            # print(rruntime)
+            brank = BatchRank(K, env, T)
+            starttime = time.time()
+            a = brank.run()
+            print(a)
+            cost, target_arm_pull_attack = brank.run()
+            bruntime = time.time() - starttime
+            print(bruntime)
+
     # print(cost)
 
     # print(len(cost), np.sum(cost))
@@ -96,7 +91,7 @@ def main(L,d,T,envname,repeat,synthetic ,tabular,filename):
 
 
 if __name__ == "__main__":
-    main(L=1000,d=5,T=2000000,repeat=1,envname='pbm',synthetic=True,tabular=False,filename='')
+    main(L=100,d=5,T=2000000,repeat=1,envname='cas',synthetic=True,tabular=False,filename='')
     # main(L=1000,d=5,T=500000,repeat=1,envname='cas',synthetic=True,tabular=False,filename='')
     # main(L=1000,d=5,T=200000,repeat=1,envname='cas',synthetic=False,tabular=False,filename='ml_1100_1k.npy')
     # main(L=1000,d=5,T=200000,repeat=1,envname='cas',synthetic=False,tabular=False,filename='ml_1100_1k.npy')

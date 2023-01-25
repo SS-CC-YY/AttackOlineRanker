@@ -12,6 +12,7 @@ class CascadeUCB(object):
         self.K = K
         self.env = env
         self.T = T
+<<<<<<< HEAD
         
         self.items = self.env.items
         self.L = len(self.items)
@@ -131,12 +132,25 @@ class CascadeUCB(object):
                 else:
                     break
         return self.rewards, cost, num_t_click
+=======
+
+        self.cnt = {}
+        self.w_hat = {}
+        self.U = {}
+
+        for i in range(self.num_arms):
+            self.cnt[i] = 0
+            self.w_hat[i] = 0
+
+        self.items = self.env.items
+>>>>>>> 08b4174abd2bbcdabcff7429f2e080c3ddfa08eb
 
     def run(self):
         ## Coefficient for UCB
         d = lambda p, q: p*np.log(1e-10 + p/q) + (1-p)*np.log(1e-10 + (1-p)/(1-q))
         f = lambda t: t*((np.log(t))**3)
 
+<<<<<<< HEAD
         # Suppose the target arm is the 10th arm
         target_arm = random.sample(set(np.argsort(self.env.means)),1)[0]
         # target_arm = 0
@@ -145,12 +159,20 @@ class CascadeUCB(object):
 
         for t in range(self.T):
             for i in range(self.L):
+=======
+        num_t_click = []
+        # Suppose the target arm is the 100th arm
+        target_arm = 100
+        for t in range(self.T):
+            for i in range(self.num_arms):
+>>>>>>> 08b4174abd2bbcdabcff7429f2e080c3ddfa08eb
                 if self.cnt[i] == 0:
                     self.U[i] = float('inf')
                 else:
                     self.U[i] = self.w_hat[i] + np.sqrt(1.5*np.log(t)/self.cnt[i])
                     self.U[i] = min(1, max(self.U[i], 0))
 
+<<<<<<< HEAD
             At = list(dict(sorted(self.U.items(), key=lambda x: x[1], reverse=True)).keys())[:self.K]
 
             x, r = self.env.feedback(At)
@@ -159,6 +181,12 @@ class CascadeUCB(object):
             #     print(At)
             #     print(r)
 
+=======
+            At = list(dict(sorted(self.U.items(), key=lambda x: x[1], reverse=True)).keys())[:self.seed_size]
+
+            x, r = self.env.feedback(At)
+
+>>>>>>> 08b4174abd2bbcdabcff7429f2e080c3ddfa08eb
             # reward of selected 10 arm at time t
             self.rewards[t] = r
 
@@ -169,7 +197,11 @@ class CascadeUCB(object):
 
             # calculate whether selected target arm
             if target_arm in At:
+<<<<<<< HEAD
                 if At.index(target_arm) == 0:
+=======
+                if x[np.where(At == target_arm)[0][0]] == 1:
+>>>>>>> 08b4174abd2bbcdabcff7429f2e080c3ddfa08eb
                     # print(1)
                     num_t_click.append(1)
                 else:
@@ -179,15 +211,26 @@ class CascadeUCB(object):
                 num_t_click.append(0)
 
             ## if none of the items are clicked dont update reward, else update it. Make sure to verify this
+<<<<<<< HEAD
             for i in range(self.K):
                 if i <= first_click:
                     arm = At[i]
                     r = self.cnt[arm] * self.w_hat[arm]
+=======
+            for i in range(self.seed_size):
+                if i <= first_click:
+                    arm = At[i]
+                    r = self.T[arm]*self.w_hat[arm]
+>>>>>>> 08b4174abd2bbcdabcff7429f2e080c3ddfa08eb
                     if i == first_click:
                         r += 1
                     self.w_hat[arm] = r/(self.cnt[arm]+1)
                     self.cnt[arm] += 1
                 
                 else:
+<<<<<<< HEAD
                     break
         return self.rewards, 0, num_t_click
+=======
+                    break
+>>>>>>> 08b4174abd2bbcdabcff7429f2e080c3ddfa08eb

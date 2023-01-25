@@ -9,7 +9,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from utlis.argparsers.simulationargparser import SimulationArgumentParser
 from algorithms.TopRank import TopRank
-from algorithms.CascadeLinUCBAttack import CascadeLinUCB
+from algorithms.CascadeUCB import CascadeUCB
+from algorithms.pbmUCB import PBMUCB
 from Environment import CasEnv, PbmEnv#, RealDataEnv
 
 description = 'Run script for testing attack algorithms.'
@@ -17,15 +18,21 @@ parser = SimulationArgumentParser(description=description)
 
 sim_args, other_args = parser.parse_all_args()
 
-UCB_cost = pd.DataFrame()
-Top_cost = pd.DataFrame()
-UCB_pull = pd.DataFrame()
-Top_pull = pd.DataFrame()
-# print(data_cost)
 
-# print(parser.parse_all_args())
-# print(sim_args)
-# print(other_args)
+pbmucb_cost = pd.DataFrame()
+casucb_cost = pd.DataFrame()
+cas_Top_cost_1 = pd.DataFrame()
+pbm_Top_cost_1 = pd.DataFrame()
+cas_Top_cost_2 = pd.DataFrame()
+pbm_Top_cost_2 = pd.DataFrame()
+
+pbmucb_pull = pd.DataFrame()
+casucb_pull = pd.DataFrame()
+cas_Top_pull_1 = pd.DataFrame()
+pbm_Top_pull_1 = pd.DataFrame()
+cas_Top_pull_2 = pd.DataFrame()
+pbm_Top_pull_2 = pd.DataFrame()
+
 for key, value in other_args.items():
     if key == 'length':
         L = int(value)
@@ -35,70 +42,135 @@ for key, value in other_args.items():
         T =int(value)
     elif key == 'repeat':
         repeat = int(value)
-    elif key == 'click_models':
-        cm = value
     elif key =='synthetic':
         synthetic = value
     elif key == 'tabular':
         tabular = value
     elif key =='filename':
         filename = value
-    elif key =='algorithms':
-        algs = value
     # print(key,'\t',value)
 
 starttime = time.time()
-# print(T)
-for envname in cm:
-    print("Click model:", envname)
-    for alg in algs:
-        print("The attack algorithm:", alg)
-        for i in range(repeat):
 
-            seed = int(time.time() * 100) % 399
-            print("Seed = %d" % seed)
-            np.random.seed(seed)
-            random.seed(seed)
-
+for alg in [1,2]:
+    if alg == 1:
+        print("run attack algorithm 1")
+        for envname in ['cas','pbm']:
             if envname == 'cas':
-                env = CasEnv(L=L, d=d, synthetic=synthetic, tabular=tabular, filename=filename)
-            elif envname == 'pbm':
-                beta = [1/(k+1) for k in range(L)]
-                # beta = np.ones(10) # used in MovieLens part
-                env = PbmEnv(L=L, d=d, beta=beta, synthetic=synthetic, tabular=tabular, filename=filename)
+                print("Cascade Click Model:")
+                for i in range(repeat):
+                    seed = int(time.time() * 100) % 399
+                    print("Start repeat ",i+1)
+                    # print("Seed = %d" % seed)
+                    np.random.seed(seed)
+                    random.seed(seed)
+                    env = CasEnv(L=L, d=d, synthetic=synthetic, tabular=tabular, filename=filename)
+                    for K in [5]:
 
-            for K in [5]:
-        
-                if tabular and envname == 'pbm':
+                        # cascadeUCB
+                        crank = CascadeUCB(K, env, T)
+                        cregs_attack, cas_cost, target_arm_pull_cas = crank.attack_run()
+                        
+                        casucb_cost[i] = cas_cost
+                        casucb_pull[i] = target_arm_pull_cas
+
+                        # Toprank
+                        trank = TopRank(K, env, T)
+                        top_cost, target_arm_pull_top = trank.attack_run()
+
+                        cas_Top_cost_1[i] = top_cost
+                        cas_Top_pull_1[i] = target_arm_pull_top
+
+            elif envname == 'pbm':
+                print("Position Based Model:")
+                for i in range(repeat):
+                    seed = int(time.time() * 100) % 399
+                    print("Start repeat ",i+1)
+                    # print("Seed = %d" % seed)
+                    np.random.seed(seed)
+                    random.seed(seed)
                     beta = [1/(k+1) for k in range(L)]
                     env = PbmEnv(L=L, d=d, beta=beta, synthetic=synthetic, tabular=tabular, filename=filename)
-                
-                # UCB algorithms
-                if alg == 'UCB':
-                    # crank = CascadeLinUCB(K, env, T)
-                    # cregs, target_arm_pull = crank.run()
-                    crank = CascadeLinUCB(K, env, T)
-                    cregs_attack, ucb_cost, target_arm_pull_UCB = crank.attack_run()
-                    UCB_cost[i] = ucb_cost
-                    UCB_pull[i] = target_arm_pull_UCB
+                    for K in [5]:
+                        # PBMUCB
+                        prank = PBMUCB(K, env, T)
+                        pregs_attack, pbm_cost, target_arm_pull_pbm = prank.attack_run()
 
-                # Top algorithm
-                if alg == 'Top':
-                    # trank = TopRank(K, env, T)
-                    # tregs, target_arm_pull = trank.run()
-                    trank = TopRank(K, env, T)
-                    top_cost, target_arm_pull_TOP = trank.attack_run()
-                    # top_cost, target_arm_pull_TOP = trank.attack_quit_run()
-                    Top_cost[i] = top_cost
-                    Top_pull[i] = target_arm_pull_TOP
+                        pbmucb_cost[i] = pbm_cost
+                        pbmucb_pull[i] = target_arm_pull_pbm
 
-    # print(data)
-        if alg == 'UCB':
-            UCB_cost.to_csv('plot/cost_{env}_{rep}_{time}_UCB.csv'.format(env = envname, rep = repeat, time = T))
-            UCB_pull.to_csv('plot/pull_{env}_{rep}_{time}_UCB.csv'.format(env = envname, rep = repeat, time = T))
-        if alg == 'Top':
-            Top_cost.to_csv('plot/cost_{env}_{rep}_{time}_Top.csv'.format(env = envname, rep = repeat, time = T))
-            Top_pull.to_csv('plot/pull_{env}_{rep}_{time}_Top.csv'.format(env = envname, rep = repeat, time = T))
+                        # Toprank
+                        trank = TopRank(K, env, T)
+                        top_cost, target_arm_pull_top = trank.attack_run()
 
+                        pbm_Top_cost_1[i] = top_cost
+                        pbm_Top_pull_1[i] = target_arm_pull_top
+        print()
+    elif alg == 2:
+        print("run attack algorithm 2")
+        for envname in ['cas','pbm']:
+            if envname == 'cas':
+                print("Cascade Click Model:")
+                for i in range(repeat):
+                    seed = int(time.time() * 100) % 399
+                    print("Start repeat ",i+1)
+                    # print("Seed = %d" % seed)
+                    np.random.seed(seed)
+                    random.seed(seed)
+                    env = CasEnv(L=L, d=d, synthetic=synthetic, tabular=tabular, filename=filename)
+                    for K in [5]:
+                        # Toprank
+                        trank = TopRank(K, env, T)
+                        top_cost, target_arm_pull_top = trank.attack_quit_run()
+
+                        cas_Top_cost_2[i] = top_cost
+                        cas_Top_pull_2[i] = target_arm_pull_top
+
+            elif envname == 'pbm':
+                print("Position Based Model:")
+                for i in range(repeat):
+                    seed = int(time.time() * 100) % 399
+                    print("Start repeat ",i+1)
+                    # print("Seed = %d" % seed)
+                    np.random.seed(seed)
+                    random.seed(seed)
+                    beta = [1/(k+1) for k in range(L)]
+                    env = PbmEnv(L=L, d=d, beta=beta, synthetic=synthetic, tabular=tabular, filename=filename)
+                    for K in [5]:
+                        # Toprank
+                        trank = TopRank(K, env, T)
+                        top_cost, target_arm_pull_top = trank.attack_quit_run()
+
+                        pbm_Top_cost_2[i] = top_cost
+                        pbm_Top_pull_2[i] = target_arm_pull_top
+        print()
 runtime = time.time() - starttime
-print(runtime)
+print("Finish runing, time cost:", runtime)
+
+print("\nStart saving data:")
+
+pbmucb_cost.to_csv('plot/cost_pbm_{rep}_{time}_pbm_alg1.csv'.format(rep = repeat, time = T))
+pbmucb_pull.to_csv('plot/pull_pbm_{rep}_{time}_pbm_alg1.csv'.format(rep = repeat, time = T))
+print("PBMUCB finished")
+
+casucb_cost.to_csv('plot/cost_cas_{rep}_{time}_cas_alg1.csv'.format(rep = repeat, time = T))
+casucb_pull.to_csv('plot/pull_cas_{rep}_{time}_cas_alg1.csv'.format(rep = repeat, time = T))
+print("CascadeUCB finished")
+
+cas_Top_cost_1.to_csv('plot/cost_cas_{rep}_{time}_Top_alg1.csv'.format(rep = repeat, time = T))
+cas_Top_pull_1.to_csv('plot/pull_cas_{rep}_{time}_Top_alg1.csv'.format(rep = repeat, time = T))
+print("Toprank with alg1 in Cascade click model finished")
+
+pbm_Top_cost_1.to_csv('plot/cost_pbm_{rep}_{time}_Top_alg1.csv'.format(rep = repeat, time = T))
+pbm_Top_pull_1.to_csv('plot/pull_pbm_{rep}_{time}_Top_alg1.csv'.format(rep = repeat, time = T))
+print("Toprank with alg1 in Pbm clikc model finished")
+
+cas_Top_cost_2.to_csv('plot/cost_cas_{rep}_{time}_Top_alg2.csv'.format(rep = repeat, time = T))
+cas_Top_pull_2.to_csv('plot/pull_cas_{rep}_{time}_Top_alg2.csv'.format(rep = repeat, time = T))
+print("Toprank with alg2 in Cascade click model finished")
+
+pbm_Top_cost_2.to_csv('plot/cost_pbm_{rep}_{time}_Top_alg2.csv'.format(rep = repeat, time = T))
+pbm_Top_pull_2.to_csv('plot/pull_pbm_{rep}_{time}_Top_alg2.csv'.format(rep = repeat, time = T))
+print("Toprank with alg2 in Pbm clikc model finished")
+
+

@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import os
+import random
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utlis.utlis import is_power2
 
@@ -107,16 +108,16 @@ class TopRank:
         return self.rewards, num_t_click
 
     def attack_run(self):
-        print("general attack:")
-        target_arm = 10
+        print("general attack on Toprank")
         cost = []
         num_t_click = []
         de = 1
 
         # self.env.means = np.insert(self.env.means, self.L, 0)
         self.env.means[np.argsort(self.env.means)[0]] = 0
+        target_arm = random.sample(set(np.argsort(self.env.means)[self.K+1:]),1)[0]
 
-        AuxL = np.argsort(self.env.means)[1:self.K]
+        AuxL = np.argsort(self.env.means)[self.K:1:-1]
         AuxL = np.array(AuxL)
         AuxL = np.insert(AuxL, 0, target_arm)
         eta_item = np.argsort(self.env.means)[0]
@@ -125,15 +126,15 @@ class TopRank:
         for t in range(self.T):
             attack = False
             At = self.select()
-            
+            At_hat = At.copy()
             # if t%1000 == 0:
             #     print(At)
 
             if list(set(At).difference(set(AuxL))) != []:             
                 for k in range(self.K):
-                    if At[k] not in AuxL:
+                    if At_hat[k] not in AuxL:
                         # set the attractiveness to
-                        At[k] = eta_item
+                        At_hat[k] = eta_item
                         attack = True
                     
             if attack == True:
@@ -141,9 +142,9 @@ class TopRank:
             else:
                 cost.append(0)
 
-            x, r = self.env.feedback(At)
+            x, r = self.env.feedback(At_hat)
             if target_arm in At:
-                if x[At.index(target_arm)] == 1:
+                if At.index(target_arm) == 0:
                     num_t_click.append(1)
                 else:
                     num_t_click.append(0)
@@ -153,8 +154,8 @@ class TopRank:
         return cost, num_t_click
     
     def attack_quit_run(self):
-        print("attack then quit")
-        target_arm = 10
+        print("attack then quit on Toprank")
+        target_arm = random.sample(set(np.argsort(self.env.means)),1)[0]
         Threshold_1 = (4*np.log((self.L ** 2)*self.T))/((self.K/self.L)+(1-np.sqrt(1+8*(self.K/self.L)/4)))
         # print(Threshold_1)
         Threshold = 4000
@@ -166,7 +167,7 @@ class TopRank:
             At = self.select()
             x, r = self.env.feedback(At)
             if target_arm in At:
-                if x[At.index(target_arm)] == 1:
+                if At.index(target_arm) == 0:
                     # print(1)
                     num_t_click.append(1)
                 else:

@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.preprocessing import normalize
 import pickle
 import pandas as pd
-L=100
+L=10
 d=5
 T=2000000
 chunkSize = 10000000
@@ -14,12 +14,12 @@ def genitems(L, d):
 
 items = genitems(L, d)
 theta = genitems(1, d)[0]
-output_item = open("items_100.pkl", 'wb')
+output_item = open("items_10.pkl", 'wb')
 str_item = pickle.dumps(items)
 output_item.write(str_item)
 output_item.close()
 
-outpuut_theta = open("theta_100.pkl", 'wb')
+outpuut_theta = open("theta_10.pkl", 'wb')
 str_theta = pickle.dumps(theta)
 outpuut_theta.write(str_theta)
 outpuut_theta.close()
@@ -54,3 +54,14 @@ outpuut_theta.close()
 # data_tmp = pd.concat(chunks, ignore_index=True)
 # data_tmp = np.cumsum(data_tmp, axis=0)
 # print(data_tmp)
+
+
+
+# target item 6
+# At = [1,2,3,4,5] [1,2,3,4,6]
+# At_hat = [15,15,15,15,15] [15,15,15,15,6]
+
+# At_hat -> feedback ->x
+# [0,0,0,0,0] [0,0,0,0,1]
+
+# x, At -> ranker

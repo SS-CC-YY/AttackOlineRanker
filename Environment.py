@@ -24,6 +24,11 @@ class Environment(object):
                         self.items = pickle.loads(ifile.read())
                     with open("theta_100.pkl", 'rb') as tfile:
                         theta = pickle.loads(tfile.read())
+                if L == 10:
+                    with open("items_10.pkl", 'rb') as ifile:
+                        self.items = pickle.loads(ifile.read())
+                    with open("theta_10.pkl", 'rb') as tfile:
+                        theta = pickle.loads(tfile.read())
                 # self.items = self.genitems(L, d)
                 # theta = self.genitems(1, d)[0]
                 self.means = np.dot(self.items, theta)

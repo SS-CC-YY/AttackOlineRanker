@@ -20,8 +20,6 @@ class SimulationArgumentParser(argparse.ArgumentParser):
                         help='Time t or Number of iterations')
         self._sim_add_argument('-r', '--repeat',default=1, type=int,
                         help='Number of runs')
-        self._sim_add_argument('-cm', '--click_models', type=str, required=True,
-                        help='Click models to be used', nargs='+')
         self._sim_add_argument('-s', '--synthetic', default=True, type=bool,
                         help='Use synthetic item or not')
         self._sim_add_argument('-t', '--tabular', default=False, type=bool,
@@ -29,8 +27,6 @@ class SimulationArgumentParser(argparse.ArgumentParser):
         self._sim_add_argument('-f', '--filename', type=str,
                         help='Use the provided dataset, default is MovieLens dataset',
                         default='/nfs/stak/users/songchen/research/SttackOnlineRanker/dataset/ml_1000user_1000item.npy')
-        self._sim_add_argument('-a', '--algorithms', type=str, required=True,
-                        help='The algorithms that would be attacked\n UCB stands for pbm-UCB or cas-UCB, Top stands for Top ranker', nargs='+')
 
         self._arguments_initialized = False
 
